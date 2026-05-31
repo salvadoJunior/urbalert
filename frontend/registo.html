@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbAlert - Criar Conta</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', sans-serif; }
+        .card-header { background-color: #198754; color: white; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-sm-12">
+            
+            <div class="text-center mb-4">
+                <h1 class="text-success fw-bold">UrbAlert 🚨</h1>
+                <p class="text-muted">Registo de Novo Utilizador</p>
+            </div>
+
+            <div class="card shadow">
+                <div class="card-header text-center py-3">
+                    <h5 class="mb-0">Criar Nova Conta (RF7)</h5>
+                </div>
+                <div class="card-body p-4">
+                    
+                    <div id="alerta-sucesso" class="alert alert-success d-none" role="alert"></div>
+                    <div id="alerta-erro" class="alert alert-danger d-none" role="alert"></div>
+
+                    <form id="form-registo">
+                        <div class="mb-3">
+                            <label for="nome" class="form-label fw-semibold">Nome Completo</label>
+                            <input type="text" class="form-control" id="nome" placeholder="Digite o seu nome" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label fw-semibold">E-mail</label>
+                            <input type="email" class="form-control" id="email" placeholder="nome@exemplo.com" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label fw-semibold">Palavra-passe (Password)</label>
+                            <input type="password" class="form-control" id="password" placeholder="Mínimo 6 caracteres" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="tipo_utilizador" class="form-label fw-semibold">Tipo de Perfil</label>
+                            <select class="form-select" id="tipo_utilizador">
+                                <option value="cidadao" selected>Cidadão (Fazer Denúncias)</option>
+                                <option value="municipio">Funcionário do Município (Ver Painel)</option>
+                            </select>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg fw-bold">Registar Conta</button>
+                            <a href="index.html" class="btn btn-link text-decoration-none">Voltar para Denúncias</a>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('form-registo').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const alertaSucesso = document.getElementById('alerta-sucesso');
+        const alertaErro = document.getElementById('alerta-erro');
+
+        alertaSucesso.classList.add('d-none');
+        alertaErro.classList.add('d-none');
+
+        // Dados no formato JSON exigido pela rota /api/registar
+        const dados = {
+            nome: document.getElementById('nome').value,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+            tipo_utilizador: document.getElementById('tipo_utilizador').value
+        };
+
+        fetch('http://127.0.0.1:5000/api/registar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+        })
+        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+        .then(res => {
+            if (res.status === 201) {
+                alertaSucesso.textContent = res.body.mensagem;
+                alertaSucesso.classList.remove('d-none');
+                document.getElementById('form-registo').reset();
+            } else {
+                alertaErro.textContent = res.body.erro || "Erro ao registar.";
+                alertaErro.classList.remove('d-none');
+            }
+        })
+        .catch(err => {
+            alertaErro.textContent = "Erro ao conectar ao Backend.";
+            alertaErro.classList.remove('d-none');
+        });
+    });
+</script>
+</body>
+</html>

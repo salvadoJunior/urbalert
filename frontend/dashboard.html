@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbAlert - Painel de Gestão Avançado</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', sans-serif; }
+        .navbar { background-color: #212529; }
+        .miniatura-foto { width: 80px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; transition: 0.2s; }
+        .miniatura-foto:hover { transform: scale(1.1); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark p-3 shadow-sm">
+    <div class="container-fluid">
+        <span class="navbar-brand mb-0 h1 fw-bold text-warning">UrbAlert Admin 🚨</span>
+        <span class="text-white">Área de Gestão Autárquica</span>
+    </div>
+</nav>
+
+<div class="container-fluid my-5 px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Controlo de Ocorrências Submetidas</h2>
+        <button class="btn btn-primary fw-bold" onclick="carregarDenuncias()">🔄 Sincronizar Dados</button>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Foto Real (RF5)</th>
+                            <th>Título da Ocorrência</th>
+                            <th>Descrição</th>
+                            <th>Localização</th>
+                            <th style="width: 220px;">Alterar Estado (RF2)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-corpo">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function carregarDenuncias() {
+        const corpoTabela = document.getElementById('tabela-corpo');
+        corpoTabela.innerHTML = '<tr><td colspan="6" class="text-center py-4">A ler dados do MySQL...</td></tr>';
+
+        fetch('http://127.0.0.1:5000/api/denuncias')
+        .then(response => response.json())
+        .then(denuncias => {
+            corpoTabela.innerHTML = ''; 
+
+            if (denuncias.length === 0) {
+                corpoTabela.innerHTML = '<tr><td colspan="6" class="text-center py-4">Nenhuma ocorrência encontrada.</td></tr>';
+                return;
+            }
+
+            denuncias.forEach(d => {
+                let estadoAtual = d.estado || "Pendente";
+                
+                let selPendente = estadoAtual === "Pendente" ? "selected" : "";
+                let selResolucao = estadoAtual === "Em Resolução" ? "selected" : "";
+                let selResolvido = estadoAtual === "Resolvido" ? "selected" : "";
+
+                let urlImagem = `http://127.0.0.1:5000/uploads/${d.imagem}`;
+
+                const linha = `
+                    <tr>
+                        <td class="fw-bold text-secondary">#${d.id}</td>
+                        <td>
+                            <a href="${urlImagem}" target="_blank">
+                                <img src="${urlImagem}" class="miniatura-foto" alt="Foto" onerror="this.src='https://placehold.co/80x60?text=Sem+Foto'">
+                            </a>
+                        </td>
+                        <td class="fw-bold text-primary">${d.titulo}</td>
+                        <td class="text-muted">${d.descricao}</td>
+                        <td><span class="badge bg-info text-dark font-monospace">📍 ${d.localizacao}</span></td>
+                        <td>
+                            <select class="form-select form-select-sm fw-bold border-2" onchange="mudarEstado(${d.id}, this.value)">
+                                <option value="Pendente" ${selPendente}>⚠️ Pendente</option>
+                                <option value="Em Resolução" ${selResolucao}>⚙️ Em Resolução</option>
+                                <option value="Resolvido" ${selResolvido}>✅ Resolvido</option>
+                            </select>
+                        </td>
+                    </tr>
+                `;
+                corpoTabela.innerHTML += linha;
+            });
+        })
+        .catch(err => {
+            corpoTabela.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Erro ao ligar ao servidor local. Garanta que o Flask está ativo!</td></tr>';
+        });
+    }
+
+    function mudarEstado(id, novoEstado) {
+        fetch(`http://127.0.0.1:5000/api/denuncia/${id}/estado`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: novoEstado })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.mensagem || "Estado atualizado com sucesso!");
+            carregarDenuncias(); 
+        })
+        .catch(err => alert("Erro ao atualizar o estado no servidor backend."));
+    }
+
+    window.onload = carregarDenuncias;
+</script>
+</body>
+</html>

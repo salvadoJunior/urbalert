@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbAlert - Criar Denúncia</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card-header { background-color: #0d6efd; color: white; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-sm-12">
+            
+            <div class="text-center mb-4">
+                <h1 class="text-primary fw-bold">UrbAlert 🚨</h1>
+                <p class="text-muted">Sistema de Denúncia de Problemas Urbanos - Maputo</p>
+            </div>
+
+            <div class="card shadow">
+                <div class="card-header text-center py-3">
+                    <h5 class="mb-0">Nova Ocorrência (RF1)</h5>
+                </div>
+                <div class="card-body p-4">
+                    
+                    <div id="alerta-sucesso" class="alert alert-success d-none" role="alert"></div>
+                    <div id="alerta-erro" class="alert alert-danger d-none" role="alert"></div>
+
+                    <form id="form-denuncia" enctype="multipart/form-data">
+                        <input type="hidden" id="user_id" name="user_id" value="1">
+
+                        <div class="mb-3">
+                            <label for="titulo" class="form-label fw-semibold">Título do Problema</label>
+                            <input type="text" class="form-control" id="titulo" name="titulo" placeholder="Ex: Buraco enorme na Avenida Mao Tsé Tung" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="descricao" class="form-label fw-semibold">Descrição Detalhada</label>
+                            <textarea class="form-control" id="descricao" name="descricao" rows="4" placeholder="Descreva os riscos e o tamanho do problema..." required></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="localizacao" class="form-label fw-semibold">Localização (Coordenadas / Texto)</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="localizacao" name="localizacao" placeholder="Clique no botão ao lado para capturar o GPS" required>
+                                <button class="btn btn-outline-secondary" type="button" id="btn-gps" onclick="capturarGPS()">📍 Obter GPS</button>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="imagem" class="form-label fw-semibold">Anexar Foto da Ocorrência</label>
+                            <input class="form-control" type="file" id="imagem" name="imagem" accept="image/*" required>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold">Submeter Denúncia</button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // Função para capturar a localização real do dispositivo (RF6)
+    function capturarGPS() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                document.getElementById('localizacao').value = `${lat}, ${lon}`;
+            }, function(error) {
+                alert("Não foi possível obter a geolocalização automaticamente. Digite o endereço manualmente.");
+            });
+        } else {
+            alert("O seu navegador não suporta geolocalização.");
+        }
+    }
+
+    // Intercetar o envio do formulário para mandar os dados para o Flask
+    document.getElementById('form-denuncia').addEventListener('submit', function(e) {
+        e.preventDefault(); // Impede a página de recarregar
+
+        const formData = new FormData(this);
+        const alertaSucesso = document.getElementById('alerta-sucesso');
+        const alertaErro = document.getElementById('alerta-erro');
+
+        // Esconder alertas anteriores
+        alertaSucesso.classList.add('d-none');
+        alertaErro.classList.add('d-none');
+
+        // Chamar a API Flask que está a rodar no localhost:5000
+        fetch('http://127.0.0.1:5000/api/denuncia', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+        .then(res => {
+            if (res.status === 201) {
+                alertaSucesso.textContent = res.body.mensagem;
+                alertaSucesso.classList.remove('d-none');
+                document.getElementById('form-denuncia').reset(); // Limpa as caixas de texto
+            } else {
+                alertaErro.textContent = res.body.erro || "Ocorreu um erro ao submeter.";
+                alertaErro.classList.remove('d-none');
+            }
+        })
+        .catch(err => {
+            alertaErro.textContent = "Erro ao conectar com o Servidor Backend. Certifique-se de que o Flask está ativo!";
+            alertaErro.classList.remove('d-none');
+            console.error(err);
+        });
+    });
+</script>
+
+</body>
+</html>
